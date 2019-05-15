@@ -169,3 +169,41 @@ function newNode(name)
 
     return node
 end
+
+
+function newWriter()
+
+    XmlWriter = {};
+
+    function XmlWriter:SerializeXmlText(xnode, depth)
+        local depth = depth or 0
+        local xmlText = ''
+        if not xnode then
+            return '<nil/>'
+        end
+        if xnode:name() then
+            xmlText = xmlText .. string.rep('    ', depth) .. '<' .. xnode:name()
+            for _,p in ipairs(xnode:properties()) do
+                xmlText = xmlText .. string.format(' %s="%s"', p.name, xnode["@" .. p.name])
+            end
+            if xnode:value() then
+                xmlText = xmlText .. '>' .. xnode:value() .. '</' .. xnode:name() .. '>\n'
+            elseif xnode:numChildren() > 0 then
+                xmlText = xmlText .. '>\n'
+                for _,c in ipairs(xnode:children()) do
+                    xmlText = xmlText .. self:SerializeXmlText(c, depth+1)
+                end
+                xmlText = xmlText .. string.rep('    ', depth) .. '</' .. xnode:name() .. '>\n'
+            else
+                xmlText = xmlText .. '/>\n'
+            end
+        elseif xnode:numChildren() > 0 then
+            for _,c in ipairs(xnode:children()) do
+                xmlText = xmlText .. self:SerializeXmlText(c, depth)
+            end
+        end
+        return xmlText
+    end
+
+    return XmlWriter
+end
