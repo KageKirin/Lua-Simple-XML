@@ -167,6 +167,64 @@ function newNode(name)
         table.insert(self.___props, { name = name, value = self[name] })
     end
 
+    function filter(cond, t)
+        local r = table.deepcopy(t)
+        for _,i in ipairs(t) do
+            if not cond(i) then
+                r:remove(i)
+            end
+        end
+        return r
+    end
+
+    function node:merge(other)
+        local ser = newWriter()
+        if ser:SerializeXmlText(self) == ser:SerializeXmlText(other) then
+            return -- elements are same, nothing to merge
+        end
+
+        for _,o in ipairs(other:children()) do
+            if self[o:name()] == nil then
+                self:addChild(o)
+            else
+                local add = true
+                if self:numChildren() == 1 then -- handling single child
+                    for _,c in ipairs(self:children()) do
+                        if c:name() == o:name() then -- single child has same name
+                            c:merge(o)
+                            add = false
+                            break
+                        end
+                    end
+                else -- handling many children
+                    local count_same = 0
+                    local child_same = nil
+                    local skip = false
+                    for _,c in ipairs(self:children()) do
+                        if c:name() == o:name() then
+                            count_same = count_same + 1
+                            child_same = c
+                            if ser:SerializeXmlText(c) == ser:SerializeXmlText(o) then
+                                add = false
+                                skip = true -- skipping same children, nothing to do futher down
+                            end
+                        end
+                    end
+                    if not skip then
+                        if count_same == 1 and child_same:numChildren() > 0 then
+                            child_same:merge(o)
+                            add = false
+                        end
+                    end
+                end
+                if add then
+                    self:addChild(o)
+                end
+            end
+        end
+
+    end
+
     return node
 end
 
